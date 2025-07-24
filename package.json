@@ -1,0 +1,30 @@
+{
+  "private": true,
+  "author": "kkzyu <kkzyu@zju.edu.cn>",
+  "scripts": {
+    "dev": "umi dev",
+    "build": "umi build",
+    "postinstall": "umi setup",
+    "setup": "umi setup",
+    "start": "npm run dev"
+  },
+  "dependencies": {
+    "@ant-design/icons": "5.x",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@uiw/react-amap": "^7.1.8",
+    "antd": "^5.26.6",
+    "axios": "^1.11.0",
+    "dnd-kit": "^0.0.2",
+    "react-beautiful-dnd": "^13.1.1",
+    "umi": "^4.4.11",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.1.0",
+    "@types/react": "^18.0.33",
+    "@types/react-dom": "^18.0.11",
+    "typescript": "^5.0.3"
+  }
+}
