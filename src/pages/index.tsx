@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Layout, theme, Menu } from 'antd';
-import { mockPlanItems } from '@/mocks/data';
 import PlanListPage from '@/layouts/PlanListPage';
 import MapView from '@/components/MapView';
 import ExportButton from '@/components/ExportButton';
@@ -16,14 +15,15 @@ export interface PlanItem {
   lng: number;
   isStart: boolean;
   isEnd: boolean;
-  mode: 'riding' | 'driving' | 'walking';
+  mode: 'riding' | 'driving' | 'walking' | 'bicycling' | 'elecbike' | 'transit';
   time?: string;
   checked: boolean;
 }
 
 const HomePage: React.FC = () => {
-  const [planItems, setPlanItems] = useState<PlanItem[]>(mockPlanItems);
+  const [planItems, setPlanItems] = useState<PlanItem[]>([]);
   const [selectedKey, setSelectedKey] = useState('1');
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const {
     token: { colorBgContainer, borderRadiusLG },
@@ -33,12 +33,30 @@ const HomePage: React.FC = () => {
     setSelectedKey(key);
   };
 
+  const handleSubmit=()=>{
+    setIsSubmitted(true);
+  }
+
+  const handleEdit=()=>{
+    setIsSubmitted(false);
+  }
+
   const renderContent = () => {
     switch (selectedKey) {
       case '1':
-        return <PlanListPage/>;
+        return <PlanListPage
+          planItems={planItems}
+          setPlanItems={setPlanItems}
+          isSubmitted={isSubmitted}
+          onSubmit={handleSubmit}
+          onEdit={handleEdit}
+        />;
       case '2':
-        return <MapView planItems={planItems} />;
+        return <MapView 
+          planItems={planItems} 
+          isSubmitted={isSubmitted}
+          city={planItems.length > 0 ? planItems[0].region : '全国'}
+        />;
       default:
         return null;
     }

@@ -23,6 +23,9 @@ importers:
       '@uiw/react-amap':
         specifier: ^7.1.8
         version: 7.1.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      amap-js:
+        specifier: ^2.4.0
+        version: 2.4.0
       antd:
         specifier: ^5.26.6
         version: 5.26.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -277,6 +280,10 @@ packages:
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
+
+  '@babel/runtime-corejs2@7.28.2':
+    resolution: {integrity: sha512-dUImRLTCIBuPXKItbP0Bdl7NfLQgDOnNSzsW4Ah17hylLyJMpWujyJ6ppWUIcOErlUAUXUMAGMtj71OLl5OhIQ==, tarball: https://registry.npmjs.org/@babel/runtime-corejs2/-/runtime-corejs2-7.28.2.tgz}
+    engines: {node: '>=6.9.0'}
 
   '@babel/runtime@7.23.6':
     resolution: {integrity: sha512-zHd0eUrf5GZoOWVCXp6koAKQTfZV07eit6bGPmJgnZdnSAvvZee6zniW2XMF7Cmc4ISOOnPy3QaSiIJGJkVEDQ==, tarball: https://registry.npmjs.org/@babel/runtime/-/runtime-7.23.6.tgz}
@@ -1726,6 +1733,9 @@ packages:
   ajv@8.17.1:
     resolution: {integrity: sha512-B/gBuNg5SiMTrPkC+A2+cW0RszwxYmn6VYxB/inlBStS5nx6xHIt/ehKRhIMhqusl7a8LjQoZnjCs5vhwxOQ1g==, tarball: https://registry.npmjs.org/ajv/-/ajv-8.17.1.tgz}
 
+  amap-js@2.4.0:
+    resolution: {integrity: sha512-SCsge/o/hnOJaxTBM55DcNJEUOlQBN5A+I7YjWNqVYcdNkL7JTKzYUStPqQtUTLF/PLEkWT3Oe4opWSAAcBDZQ==, tarball: https://registry.npmjs.org/amap-js/-/amap-js-2.4.0.tgz}
+
   ansi-html-community@0.0.8:
     resolution: {integrity: sha512-1APHAyr3+PCamwNw3bXCPp4HFLONZt/yIH0sZp0/469KWNTEy+qN5jQ3GVX6DMZ1UXAi34yVwtTeaG/HpBuuzw==, tarball: https://registry.npmjs.org/ansi-html-community/-/ansi-html-community-0.0.8.tgz}
     engines: {'0': node >= 0.8.0}
@@ -2146,6 +2156,10 @@ packages:
 
   core-js-pure@3.44.0:
     resolution: {integrity: sha512-gvMQAGB4dfVUxpYD0k3Fq8J+n5bB6Ytl15lqlZrOIXFzxOhtPaObfkQGHtMRdyjIf7z2IeNULwi1jEwyS+ltKQ==, tarball: https://registry.npmjs.org/core-js-pure/-/core-js-pure-3.44.0.tgz}
+
+  core-js@2.6.12:
+    resolution: {integrity: sha512-Kb2wC0fvsWfQrgk8HU5lW6U/Lcs8+9aaYcy4ZFc6DDlo4nZ7n70dEgE5rtR0oG6ufKDUnrwfWL1mXR5ljDatrQ==, tarball: https://registry.npmjs.org/core-js/-/core-js-2.6.12.tgz}
+    deprecated: core-js@<3.23.3 is no longer maintained and not recommended for usage due to the number of issues. Because of the V8 engine whims, feature detection in old core-js versions could cause a slowdown up to 100x even if nothing is polyfilled. Some versions have web compatibility issues. Please, upgrade your dependencies to the actual version of core-js.
 
   core-js@3.34.0:
     resolution: {integrity: sha512-aDdvlDder8QmY91H88GzNi9EtQi2TjvQhpCX6B1v/dAZHU1AuLgHvRh54RiOerpEhEW46Tkf+vgAViB/CWC0ag==, tarball: https://registry.npmjs.org/core-js/-/core-js-3.34.0.tgz}
@@ -5797,6 +5811,10 @@ snapshots:
       '@babel/core': 7.28.0
       '@babel/helper-plugin-utils': 7.27.1
 
+  '@babel/runtime-corejs2@7.28.2':
+    dependencies:
+      core-js: 2.6.12
+
   '@babel/runtime@7.23.6':
     dependencies:
       regenerator-runtime: 0.14.1
@@ -7497,6 +7515,10 @@ snapshots:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
+  amap-js@2.4.0:
+    dependencies:
+      '@babel/runtime-corejs2': 7.28.2
+
   ansi-html-community@0.0.8: {}
 
   ansi-regex@4.1.1: {}
@@ -8067,6 +8089,8 @@ snapshots:
       toggle-selection: 1.0.6
 
   core-js-pure@3.44.0: {}
+
+  core-js@2.6.12: {}
 
   core-js@3.34.0: {}
 
