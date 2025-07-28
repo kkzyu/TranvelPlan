@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { AutoComplete, Button, Spin, message } from 'antd';
+import { Button, Spin, message } from 'antd';
 import { PlanItem } from '@/pages/index';
 import {  RouteService, RouteResult, CompleteRouteResult, RouteSegment } from '@/services/maps';
-import { loadAMapScript } from '@/services/center'
-import { CITY_CENTERS, MODE_NAMES, MODE_COLORS } from '@/constants'
+import { loadAMapScript } from '@/services/types/center'
+import { CITY_CENTERS } from '@/constants/options'
+import { MODE_NAMES, MODE_COLORS } from '@/constants/mapConfig'
+
 
 const MapView = ({ 
   planItems, 
   isSubmitted = false,
-  city = '全国'
+  city = '杭州'
 }: { 
   planItems: PlanItem[], 
   isSubmitted?: boolean,
@@ -33,10 +35,10 @@ const MapView = ({
       try {
         await loadAMapScript();
         
-        const center = CITY_CENTERS[city] || CITY_CENTERS['全国'];
+        const center = CITY_CENTERS[city] || CITY_CENTERS['杭州'];
         
         mapInstanceRef.current = new (window as any).AMap.Map(mapContainerRef.current, {
-          zoom: city === '全国' ? 4 : 11,
+          zoom: city === '杭州' ? 4 : 11,
           center: center,
           mapStyle: 'amap://styles/normal',
           showLabel: true,
@@ -67,7 +69,6 @@ const MapView = ({
             'AMap.ToolBar', 
             'AMap.ControlBar'
           ], () => {
-            // 添加控件
             if ((window as any).AMap.Scale) {
               mapInstanceRef.current.addControl(new (window as any).AMap.Scale({
                 position: 'LB'
@@ -252,11 +253,7 @@ const MapView = ({
 
     const routeInfo = routes.find(r => r.mode === mode);
     if (!routeInfo || !routeInfo.success) {
-      if (mode === 'elecbike') {
-        message.warning(`该城市暂不支持电动车路径规划`);
-      } else {
-        message.warning(`${MODE_NAMES[mode]}路线规划暂不可用`);
-      }
+      message.warning(`${MODE_NAMES[mode]}路线规划暂不可用`);
       return;
     }
 
@@ -273,7 +270,7 @@ const MapView = ({
       if (!success) {
         message.error(`${MODE_NAMES[mode]}路线绘制失败`);
       } else {
-        if (mode === 'transit') {
+        if (mode === 'transfer') {
           message.success('公交路线已显示，红色标记为换乘站点');
         }
       }
@@ -330,7 +327,7 @@ const MapView = ({
       <div 
             ref={mapContainerRef} 
             style={{ 
-              height: 'calc(100% - 150px)', 
+              height: 'calc(100% - 200px)', 
               width: '100%',
               background: '#f0f2f5'
             }} 
@@ -338,7 +335,7 @@ const MapView = ({
       
       
       
-      <div style={{ padding: '16px', maxHeight: '100vh', overflow: 'auto' }}>
+      <div style={{ padding: '16px', maxHeight: '100vh', overflow: 'hidden' }}>
         {loading && (
           <div style={{ textAlign: 'center', padding: '20px' }}>
             <Spin size="small" /> {isSubmitted ? '计算完整路径中...' : '查询多种出行方式中...'}
@@ -485,7 +482,7 @@ const MapView = ({
                     <>
                       距离: {(route.distance/1000).toFixed(1)}km | 
                       时间: {Math.ceil(route.duration/60)}分钟
-                      {route.mode === 'transit' && ' | 含换乘'}
+                      {route.mode === 'transfer' && ' | 含换乘'}
                     </>
                   ) : (
                     <span style={{ color: '#ff4d4f' }}>

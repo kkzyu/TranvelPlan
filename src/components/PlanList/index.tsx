@@ -51,7 +51,7 @@ const PlanList = ({
   const [dataSource, setDataSource] = useState<PlanItem[]>(items);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<Place|null>(null);
-  const [city, setCity] = useState('全国');
+  const [city, setCity] = useState('杭州');
 
   React.useEffect(()=>{
     setDataSource(items);
@@ -123,7 +123,7 @@ const PlanList = ({
   const handleAddNewItem = () => {
     setSelectedPlace(null);
     setIsModalOpen(true);
-    setCity('全国');
+    setCity('杭州');
   };
 
   const handleOk = () => {
@@ -233,9 +233,8 @@ const PlanList = ({
           }}>
           <Select.Option value="driving">驾车</Select.Option>
           <Select.Option value="walking">步行</Select.Option>
-          <Select.Option value="bicycling">骑行</Select.Option>
-          <Select.Option value="elecbike">电动车</Select.Option>
-          <Select.Option value="transit">公交</Select.Option>
+          <Select.Option value="riding">骑行</Select.Option>
+          <Select.Option value="transfer">公交</Select.Option>
         </Select>
       )
     },
@@ -349,7 +348,7 @@ const PlanList = ({
                 const cityName = selectedOptions[selectedOptions.length-1].label;
                 setCity(cityName);
               }else{
-                setCity('全国');
+                setCity('杭州');
               }
             }}/>
           </div>
@@ -359,7 +358,7 @@ const PlanList = ({
             <PlaceSearchInput
               onPlaceSelected={setSelectedPlace}
               placeholder="输入景点名称搜索"
-              city={city === '全国' ? '' : city} 
+              city={city === '杭州' ? '' : city} 
               key={city}
             />
             {selectedPlace && (

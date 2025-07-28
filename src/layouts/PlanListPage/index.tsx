@@ -34,7 +34,7 @@ const PlanListPage: React.FC<PlanListPageProps> = ({
         <MapView 
           planItems={planItems}
           isSubmitted={isSubmitted}
-          city={planItems.length > 0 ? planItems[0].region : '全国'}
+          city={planItems.length > 0 ? planItems[0].region : '杭州'}
         />
       </Col>
     </Row>

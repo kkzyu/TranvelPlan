@@ -30,8 +30,6 @@ export interface AutoCompleteOption {
 
 // Web服务API Key (用于HTTP请求)
 const AMAP_WEB_SERVICE_KEY = process.env.UMI_APP_AMAP_WEB_SERVICE_KEY;
-// Web端JS API Key (用于地图和前端路线规划)
-const AMAP_JS_KEY = process.env.UMI_APP_AMAP_JS_KEY;
 
 export const searchPlacesByKeyword = async (keyword: string, city: string): Promise<Place[]> => {
     try {
@@ -105,13 +103,13 @@ export interface CompleteRouteResult {
   success: boolean;
 }
 
-// 多种出行方式路线查询
 export class RouteService {
   private map: any;
   private pluginsLoaded: boolean = false;
+  private availablePlugins: Set<string> = new Set();
   private currentRouteInstance: any = null;   
-  private segmentInstances: any[] = []; // 存储所有路段实例   
-  private segmentOverlays: any[] = []; // 存储所有路段覆盖物
+  private segmentInstances: any[] = [];   
+  private segmentOverlays: any[] = []; 
 
   constructor(map: any) {
     this.map = map;
@@ -126,15 +124,29 @@ export class RouteService {
         reject(new Error('AMap未加载'));
         return;
       }
-      (window as any).AMap.plugin([
-        'AMap.Driving',       
-        'AMap.Walking',       
-        'AMap.Bicycling',     
-        'AMap.Transfer',       
-      ], () => {
-        this.pluginsLoaded = true;
-        console.log('路线规划插件加载完成');
-        resolve();
+      const basicPlugins = ['AMap.Driving', 'AMap.Walking', 'AMap.Transfer'];
+      const advancedPlugins = ['AMap.Riding'];
+
+      (window as any).AMap.plugin(basicPlugins, () => {
+        basicPlugins.forEach(plugin=>{
+            const pluginName=plugin.replace('AMap.','');
+            if((window as any).AMap[pluginName]){
+                this.availablePlugins.add(pluginName.toLowerCase());
+            }
+        });
+
+        (window as any).AMap.plugin(advancedPlugins, () => {
+          advancedPlugins.forEach(plugin => {
+            const pluginName = plugin.replace('AMap.', '');
+            if ((window as any).AMap[pluginName]) {
+              this.availablePlugins.add(pluginName.toLowerCase());
+            }
+          });
+          
+          this.pluginsLoaded = true;
+          console.log('已加载的插件:', Array.from(this.availablePlugins));
+          resolve();
+        });
       });
     });
   }
@@ -144,16 +156,12 @@ export class RouteService {
     await this.loadPlugins();
   }
 
-  // 清除地图上的所有路线
-  clearRoutes(): void {
+  clearAllRoutes(): void {
     if (this.currentRouteInstance) {
-      // 如果有当前路线实例，清除它
-      if (this.currentRouteInstance.clear) {
-        this.currentRouteInstance.clear();
-      }
+      this.currentRouteInstance.clear();
       this.currentRouteInstance = null;
     }
-    // 清除分段实例
+
     this.segmentInstances.forEach(instance => {
       if (instance && instance.clear) {
         instance.clear();
@@ -161,92 +169,357 @@ export class RouteService {
     });
     this.segmentInstances = [];
 
-    // 清除覆盖物
     this.segmentOverlays.forEach(overlay => {
-      if (overlay && this.map) {
+      if (overlay) {
         this.map.remove(overlay);
       }
     });
     this.segmentOverlays = [];
     
-    // 清除地图上的所有路线覆盖物，但保留标记点
-    if (this.map) {
-      const overlays = this.map.getAllOverlays('polyline');
-      overlays.forEach((overlay: any) => {
-        this.map.remove(overlay);
-      });
+    const polylines = this.map.getAllOverlays('polyline');
+    polylines.forEach((polyline: any) => {
+      this.map.remove(polyline);
+    });
+  }
+
+  async drawRoute(
+    startPoint: [number, number],
+    endPoint: [number, number],
+    mode: string
+  ): Promise<boolean> {
+    try {
+      await this.ensurePluginsLoaded();
+      
+      // 清除之前的路线
+      this.clearAllRoutes();
+
+      switch (mode) {
+        case 'driving':
+          return this.drawDrivingRoute(startPoint, endPoint);
+        case 'walking':
+          return this.drawWalkingRoute(startPoint, endPoint);
+        case 'riding':
+          return this.drawridingRoute(startPoint, endPoint);
+        case 'transfer':
+          return this.drawTransitRoute(startPoint, endPoint);
+        default:
+          return false;
+      }
+    } catch (error) {
+      console.error('绘制路线失败:', error);
+      return false;
     }
   }
-  // 计算完整路径（分段路线）
-  async calculateCompleteRoute(
-    planItems: any[],
-    mode: string = 'driving'
-  ): Promise<CompleteRouteResult> {
-    const checkedItems = planItems.filter(item => item.checked);
-    if (checkedItems.length < 2) {
-      return {
-        segments: [],
-        totalDistance: 0,
-        totalDuration: 0,
-        mode,
-        success: false
-      };
+
+  private drawDrivingRoute(startPoint: [number, number], endPoint: [number, number]): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (!this.availablePlugins.has('driving')) {
+        resolve(false);
+        return;
+      }
+
+      this.currentRouteInstance = new (window as any).AMap.Driving({
+        map: this.map, // 直接绘制到地图上
+        showTraffic: false,
+        autoFitView: true, // 自动调整视野
+        showSteps: true, // 显示路径步骤
+        hideMarkers: false // 显示起终点标记
+      });
+
+      this.currentRouteInstance.search(startPoint, endPoint, (status: string, result: any) => {
+        if (status === 'complete' && result.routes && result.routes.length > 0) {
+          console.log('驾车路线绘制成功');
+          resolve(true);
+        } else {
+          console.error('驾车路线绘制失败:', status, result);
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  // 绘制步行路线
+  private drawWalkingRoute(startPoint: [number, number], endPoint: [number, number]): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (!this.availablePlugins.has('walking')) {
+        resolve(false);
+        return;
+      }
+
+      this.currentRouteInstance = new (window as any).AMap.Walking({
+        map: this.map,
+        autoFitView: true,
+        showSteps: true,
+        hideMarkers: false
+      });
+
+      this.currentRouteInstance.search(startPoint, endPoint, (status: string, result: any) => {
+        if (status === 'complete' && result.routes && result.routes.length > 0) {
+          console.log('步行路线绘制成功');
+          resolve(true);
+        } else {
+          console.error('步行路线绘制失败:', status, result);
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  // 绘制骑行路线
+  private drawridingRoute(startPoint: [number, number], endPoint: [number, number]): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (!this.availablePlugins.has('riding')) {
+        resolve(false);
+        return;
+      }
+
+      this.currentRouteInstance = new (window as any).AMap.Riding({
+        map: this.map,
+        autoFitView: true,
+        showSteps: true,
+        hideMarkers: false
+      });
+
+      this.currentRouteInstance.search(startPoint, endPoint, (status: string, result: any) => {
+        if (status === 'complete' && result.routes && result.routes.length > 0) {
+          console.log('骑行路线绘制成功');
+          resolve(true);
+        } else {
+          console.error('骑行路线绘制失败:', status, result);
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  // 绘制公交路线
+  private drawTransitRoute(startPoint: [number, number], endPoint: [number, number]): Promise<boolean> {
+    return new Promise((resolve) => {
+      if (!this.availablePlugins.has('transfer')) {
+        resolve(false);
+        return;
+      }
+
+      this.currentRouteInstance = new (window as any).AMap.Transfer({
+        map: this.map,
+        city: '杭州', // 根据实际城市调整
+        autoFitView: true,
+        showSteps: true,
+        hideMarkers: false
+      });
+
+      this.currentRouteInstance.search(startPoint, endPoint, (status: string, result: any) => {
+        if (status === 'complete' && result.plans && result.plans.length > 0) {
+          console.log('公交路线绘制成功');
+          resolve(true);
+        } else {
+          console.error('公交路线绘制失败:', status, result);
+          resolve(false);
+        }
+      });
+    });
+  }
+
+  // 创建路段实例
+  private async createSegmentInstance(segment: RouteSegment): Promise<any> {
+    return new Promise((resolve) => {
+      const startPoint = segment.startPoint.position;
+      const endPoint = segment.endPoint.position;
+
+      let routeInstance: any;
+
+      switch (segment.mode) {
+        case 'driving':
+          if (this.availablePlugins.has('driving')) {
+            routeInstance = new (window as any).AMap.Driving({
+              map: this.map,
+              autoFitView: false,
+              showSteps: false,
+              hideMarkers: true // 隐藏默认标记，使用自定义标记
+            });
+          }
+          break;
+        case 'walking':
+          if (this.availablePlugins.has('walking')) {
+            routeInstance = new (window as any).AMap.Walking({
+              map: this.map,
+              autoFitView: false,
+              showSteps: false,
+              hideMarkers: true
+            });
+          }
+          break;
+        case 'riding':
+          if (this.availablePlugins.has('riding')) {
+            routeInstance = new (window as any).AMap.Riding({
+              map: this.map,
+              autoFitView: false,
+              showSteps: false,
+              hideMarkers: true
+            });
+          }
+          break;
+        case 'transfer':
+          if (this.availablePlugins.has('transfer')) {
+            routeInstance = new (window as any).AMap.Transfer({
+              map: this.map,
+              city: '杭州',
+              autoFitView: false,
+              showSteps: false,
+              hideMarkers: true
+            });
+          }
+          break;
+      }
+
+      if (!routeInstance) {
+        resolve(null);
+        return;
+      }
+
+      routeInstance.search(startPoint, endPoint, (status: string, result: any) => {
+        if (status === 'complete') {
+          resolve(routeInstance);
+        } else {
+          resolve(null);
+        }
+      });
+    });
+  }
+
+  drawCompleteRoute(completeRouteResult: CompleteRouteResult): void {
+    this.clearAllRoutes();
+
+    if (!completeRouteResult.success || completeRouteResult.segments.length === 0) {
+      return;
     }
 
-    const segments: RouteSegment[] = [];
-    let totalDistance = 0;
-    let totalDuration = 0;
+    const MODE_COLORS: Record<string, string> = {
+      driving: '#1890ff',
+      walking: '#52c41a',
+      riding: '#faad14',
+      elecbike: '#722ed1',
+      transfer: '#f759ab'
+    };
 
-    // 分段计算路线（串行处理确保顺序）
-    for (let i = 0; i < checkedItems.length - 1; i++) {
-      const startItem = checkedItems[i];
-      const endItem = checkedItems[i + 1];
-      
-      try {
-        const segmentResult = await this.calculateSingleSegment(
-          startItem,
-          endItem,
-          mode,
-          `segment-${i}`
-        );
+    completeRouteResult.segments.forEach((segment, index) => {
+      if (segment.success && segment.polyline.length > 0) {
+        const polyline = new (window as any).AMap.Polyline({
+          path: segment.polyline,
+          strokeColor: MODE_COLORS[segment.mode] || '#1890ff',
+          strokeWeight: 5,
+          strokeOpacity: 0.8,
+          strokeStyle: 'solid',
+          extData: { segmentId: segment.id, segmentIndex: index }
+        });
 
-        segments.push(segmentResult);
-        
-        if (segmentResult.success) {
-          totalDistance += segmentResult.distance;
-          totalDuration += segmentResult.duration;
+        this.map.add(polyline);
+        this.segmentOverlays.push(polyline);
+
+        // 添加路段标识
+        if (segment.polyline.length > 0) {
+          const midIndex = Math.floor(segment.polyline.length / 2);
+          const midPoint = segment.polyline[midIndex];
+          
+          const marker = new (window as any).AMap.Marker({
+            position: midPoint,
+            content: `<div style="background: ${MODE_COLORS[segment.mode]}; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; border: 1px solid white;">${index + 1}</div>`,
+            offset: new (window as any).AMap.Pixel(-10, -10)
+          });
+
+          this.map.add(marker);
+          this.segmentOverlays.push(marker);
         }
-      } catch (error) {
-        console.error(`路段 ${startItem.name} → ${endItem.name} 计算失败:`, error);
-        segments.push({
-          id: `segment-${i}`,
-          startPoint: {
-            name: startItem.name,
-            position: [startItem.lng, startItem.lat]
-          },
-          endPoint: {
-            name: endItem.name,
-            position: [endItem.lng, endItem.lat]
-          },
-          distance: 0,
-          duration: 0,
-          mode,
-          polyline: [],
-          success: false,
-          error: '路线计算失败'
+      }
+    });
+
+    if (this.segmentOverlays.length > 0) {
+      this.map.setFitView(this.segmentOverlays, false, [20, 20, 20, 20]);
+    }
+  }
+
+  highlightSegment(segmentId: string): void {
+    const MODE_COLORS: Record<string, string> = {
+      driving: '#1890ff',
+      walking: '#52c41a',
+      riding: '#faad14',
+      elecbike: '#722ed1',
+      transfer: '#f759ab'
+    };
+
+    this.segmentOverlays.forEach(overlay => {
+      if (overlay.CLASS_NAME === 'AMap.Polyline') {
+        const extData = overlay.getExtData();
+        if (extData && extData.segmentId === segmentId) {
+          overlay.setOptions({
+            strokeWeight: 8,
+            strokeOpacity: 1,
+            zIndex: 100
+          });
+        } else {
+          overlay.setOptions({
+            strokeWeight: 3,
+            strokeOpacity: 0.3,
+            zIndex: 1
+          });
+        }
+      }
+    });
+  }
+
+  resetSegmentHighlight(): void {
+    this.segmentOverlays.forEach(overlay => {
+      if (overlay.CLASS_NAME === 'AMap.Polyline') {
+        overlay.setOptions({
+          strokeWeight: 5,
+          strokeOpacity: 0.8,
+          zIndex: 10
         });
       }
-    }
-
-    return {
-      segments,
-      totalDistance,
-      totalDuration,
-      mode,
-      success: segments.some(s => s.success)
-    };
+    });
   }
 
+  async getAllRoutes(
+    startPoint: [number, number],
+    endPoint: [number, number], 
+    city: string = '全国'
+  ): Promise<RouteResult[]> {
+    console.log('getAllRoutes 被调用:', { startPoint, endPoint, city });
+
+    const routePromises = [
+      this.getDrivingRoute(startPoint, endPoint),
+      this.getWalkingRoute(startPoint, endPoint),
+      this.getRidingRoute(startPoint, endPoint),
+      this.getTransitRoute(startPoint, endPoint, city)
+    ];
+
+    try {
+      const results = await Promise.allSettled(routePromises);
+      const routes = results.map((result, index) => {
+        if (result.status === 'fulfilled') {
+          return result.value;
+        } else {
+          console.error(`路线查询失败 (索引${index}):`, result.reason);
+          const modes = ['driving', 'walking', 'riding', 'transfer'];
+          return {
+            mode: modes[index],
+            distance: 0,
+            duration: 0,
+            success: false,
+            error: '查询失败'
+          } as RouteResult;
+        }
+      });
+
+      console.log('所有路线查询完成:', routes);
+      return routes;
+    } catch (error) {
+      console.error('批量路线查询失败:', error);
+      return [];
+    }
+  }
+
+  // 新增：按景点设置的出行方式计算完整路径
   async calculateCompleteRouteWithModes(
     checkedItems: any[]
   ): Promise<CompleteRouteResult> {
@@ -255,7 +528,7 @@ export class RouteService {
         segments: [],
         totalDistance: 0,
         totalDuration: 0,
-        mode: 'mixed', // 混合模式
+        mode: 'mixed',
         success: false
       };
     }
@@ -264,7 +537,7 @@ export class RouteService {
     let totalDistance = 0;
     let totalDuration = 0;
 
-    // 分段计算路线（串行处理确保顺序）
+    // 分段计算路线
     for (let i = 0; i < checkedItems.length - 1; i++) {
       const startItem = checkedItems[i];
       const endItem = checkedItems[i + 1];
@@ -317,7 +590,6 @@ export class RouteService {
     };
   }
 
-
   // 计算单个路段
   private async calculateSingleSegment(
     startItem: any,
@@ -325,202 +597,44 @@ export class RouteService {
     mode: string,
     segmentId: string
   ): Promise<RouteSegment> {
-    const startPoint: [number, number] = [startItem.lng, startItem.lat];
-    const endPoint: [number, number] = [endItem.lng, endItem.lat];
+    let routeResult: RouteResult;
 
-    return new Promise((resolve) => {
-      let routeInstance: any = null;
-
-      switch (mode) {
-        case 'driving':
-          routeInstance = new (window as any).AMap.Driving({
-            map: null,
-            showTraffic: false,
-            autoFitView: false
-          });
-          break;
-
-        case 'walking':
-          if ((window as any).AMap.Walking) {
-            routeInstance = new (window as any).AMap.Walking({
-              map: null,
-              autoFitView: false
-            });
-          }
-          break;
-
-        case 'bicycling':
-          if ((window as any).AMap.Bicycling) {
-            routeInstance = new (window as any).AMap.Bicycling({
-              map: null,
-              autoFitView: false
-            });
-          }
-          break;
-
-        case 'elecbike':
-          if ((window as any).AMap.ElectroBike) {
-            routeInstance = new (window as any).AMap.ElectroBike({
-              map: null,
-              autoFitView: false
-            });
-          }
-          break;
-      }
-
-      if (!routeInstance) {
-        resolve({
-          id: segmentId,
-          startPoint: { name: startItem.name, position: startPoint },
-          endPoint: { name: endItem.name, position: endPoint },
-          distance: 0,
-          duration: 0,
-          mode,
-          polyline: [],
-          success: false,
-          error: `不支持${mode}路线规划`
-        });
-        return;
-      }
-
-      routeInstance.search(startPoint, endPoint, (status: string, result: any) => {
-        if (status === 'complete' && result.routes && result.routes.length > 0) {
-          const route = result.routes[0];
-          const polyline: [number, number][] = [];
-          
-          // 提取路线坐标点
-          if (route.path && route.path.length > 0) {
-            route.path.forEach((point: any) => {
-              polyline.push([point.lng, point.lat]);
-            });
-          }
-
-          resolve({
-            id: segmentId,
-            startPoint: { name: startItem.name, position: startPoint },
-            endPoint: { name: endItem.name, position: endPoint },
-            distance: route.distance,
-            duration: route.time,
-            mode,
-            polyline,
-            success: true
-          });
-        } else {
-          resolve({
-            id: segmentId,
-            startPoint: { name: startItem.name, position: startPoint },
-            endPoint: { name: endItem.name, position: endPoint },
-            distance: 0,
-            duration: 0,
-            mode,
-            polyline: [],
-            success: false,
-            error: '路线查询失败'
-          });
-        }
-      });
-    });
-  }
-
-  // 绘制完整路径
-  drawCompleteRoute(completeRouteResult: CompleteRouteResult): void {
-    this.clearRoutes();
-
-    if (!completeRouteResult.success || completeRouteResult.segments.length === 0) {
-      return;
+    switch (mode) {
+      case 'driving':
+        routeResult = await this.getDrivingRoute([startItem.lng, startItem.lat], [endItem.lng, endItem.lat]);
+        break;
+      case 'walking':
+        routeResult = await this.getWalkingRoute([startItem.lng, startItem.lat], [endItem.lng, endItem.lat]);
+        break;
+      case 'riding':
+        routeResult = await this.getRidingRoute([startItem.lng, startItem.lat], [endItem.lng, endItem.lat]);
+        break;
+      case 'transfer':
+        routeResult = await this.getTransitRoute([startItem.lng, startItem.lat], [endItem.lng, endItem.lat], '杭州');
+        break;
+      default:
+        routeResult = await this.getDrivingRoute([startItem.lng, startItem.lat], [endItem.lng, endItem.lat]);
     }
 
-    const MODE_COLORS: Record<string, string> = {
-      driving: '#1890ff',
-      walking: '#52c41a',
-      bicycling: '#faad14',
-      elecbike: '#722ed1',
-      transit: '#f759ab'
+    return {
+      id: segmentId,
+      startPoint: {
+        name: startItem.name,
+        position: [startItem.lng, startItem.lat]
+      },
+      endPoint: {
+        name: endItem.name,
+        position: [endItem.lng, endItem.lat]
+      },
+      distance: routeResult.distance,
+      duration: routeResult.duration,
+      mode: mode as any,
+      polyline: [], // 可以从路线结果中提取
+      success: routeResult.success,
+      error: routeResult.error
     };
-
-    completeRouteResult.segments.forEach((segment, index) => {
-      if (segment.success && segment.polyline.length > 0) {
-        const polyline = new (window as any).AMap.Polyline({
-          path: segment.polyline,
-          strokeColor: MODE_COLORS[segment.mode] || '#1890ff',
-          strokeWeight: 5,
-          strokeOpacity: 0.8,
-          strokeStyle: 'solid',
-          extData: { segmentId: segment.id, segmentIndex: index }
-        });
-
-        this.map.add(polyline);
-        this.segmentOverlays.push(polyline);
-
-        // 添加路段标识
-        if (segment.polyline.length > 0) {
-          const midIndex = Math.floor(segment.polyline.length / 2);
-          const midPoint = segment.polyline[midIndex];
-          
-          const marker = new (window as any).AMap.Marker({
-            position: midPoint,
-            content: `<div style="background: ${MODE_COLORS[segment.mode]}; color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; border: 1px solid white;">${index + 1}</div>`,
-            offset: new (window as any).AMap.Pixel(-10, -10)
-          });
-
-          this.map.add(marker);
-          this.segmentOverlays.push(marker);
-        }
-      }
-    });
-
-    // 自适应显示
-    if (this.segmentOverlays.length > 0) {
-      this.map.setFitView(this.segmentOverlays, false, [20, 20, 20, 20]);
-    }
   }
 
-  // 高亮特定路段
-  highlightSegment(segmentId: string): void {
-    const MODE_COLORS: Record<string, string> = {
-      driving: '#1890ff',
-      walking: '#52c41a',
-      bicycling: '#faad14',
-      elecbike: '#722ed1',
-      transit: '#f759ab'
-    };
-
-    this.segmentOverlays.forEach(overlay => {
-      if (overlay.CLASS_NAME === 'AMap.Polyline') {
-        const extData = overlay.getExtData();
-        if (extData && extData.segmentId === segmentId) {
-          // 高亮选中路段
-          overlay.setOptions({
-            strokeWeight: 8,
-            strokeOpacity: 1,
-            zIndex: 100
-          });
-        } else {
-          // 其他路段变灰
-          overlay.setOptions({
-            strokeWeight: 3,
-            strokeOpacity: 0.3,
-            zIndex: 1
-          });
-        }
-      }
-    });
-  }
-
-  // 恢复所有路段正常显示
-  resetSegmentHighlight(): void {
-    this.segmentOverlays.forEach(overlay => {
-      if (overlay.CLASS_NAME === 'AMap.Polyline') {
-        overlay.setOptions({
-          strokeWeight: 5,
-          strokeOpacity: 0.8,
-          zIndex: 10
-        });
-      }
-    });
-  }
-
-  // 驾车路线
   async getDrivingRoute(
     startPoint: [number, number], 
     endPoint: [number, number]
@@ -613,7 +727,7 @@ export class RouteService {
   }
 
   // 骑行路线
-  async getBicyclingRoute(
+  async getRidingRoute(
     startPoint: [number, number], 
     endPoint: [number, number]
   ): Promise<RouteResult> {
@@ -621,7 +735,7 @@ export class RouteService {
       await this.ensurePluginsLoaded();
     } catch (error) {
       return {
-        mode: 'bicycling',
+        mode: 'riding',
         distance: 0,
         duration: 0,
         success: false,
@@ -630,23 +744,23 @@ export class RouteService {
     }
 
     return new Promise((resolve) => {
-      const bicycling = new (window as any).AMap.Bicycling({
+      const riding = new (window as any).AMap.Riding({
         map: null,
         autoFitView: false
       });
 
-      bicycling.search(startPoint, endPoint, (status: string, result: any) => {
+      riding.search(startPoint, endPoint, (status: string, result: any) => {
         if (status === 'complete' && result.routes && result.routes.length > 0) {
           const route = result.routes[0];
           resolve({
-            mode: 'bicycling',
+            mode: 'riding',
             distance: route.distance,
             duration: route.time,
             success: true
           });
         } else {
           resolve({
-            mode: 'bicycling',
+            mode: 'riding',
             distance: 0,
             duration: 0,
             success: false,
@@ -657,61 +771,18 @@ export class RouteService {
     });
   }
 
-  // 电动车路线（需要特殊权限）
-  async getElecBikeRoute(
-    startPoint: [number, number], 
-    endPoint: [number, number]
-  ): Promise<RouteResult> {
-    try {
-      await this.ensurePluginsLoaded();
-    } catch (error) {
-      return {
-        mode: 'elecbike',
-        distance: 0,
-        duration: 0,
-        success: false,
-        error: '路线规划插件加载失败'
-      };
-    }
-    return new Promise((resolve) => {
-      const elecBike = new (window as any).AMap.ElectroBike({
-        map: null,
-        autoFitView: false
-      });
-
-      elecBike.search(startPoint, endPoint, (status: string, result: any) => {
-        if (status === 'complete' && result.routes && result.routes.length > 0) {
-          const route = result.routes[0];
-          resolve({
-            mode: 'elecbike',
-            distance: route.distance,
-            duration: route.time,
-            success: true
-          });
-        } else {
-          resolve({
-            mode: 'elecbike',
-            distance: 0,
-            duration: 0,
-            success: false,
-            error: '电动车路线查询失败'
-          });
-        }
-      });
-    });
-  }
 
   // 公交路线
   async getTransitRoute(
     startPoint: [number, number], 
     endPoint: [number, number],
-    city: string = '全国'
+    city: string = '杭州'
   ): Promise<RouteResult> {
     try {
       await this.ensurePluginsLoaded();
     } catch (error) {
       return {
-        mode: 'transit',
+        mode: 'transfer',
         distance: 0,
         duration: 0,
         success: false,
@@ -722,7 +793,7 @@ export class RouteService {
     return new Promise((resolve) => {
       const transfer = new (window as any).AMap.Transfer({
         map: null,
-        city: city === '全国' ? '北京' : city, // 公交查询需要具体城市
+        city: city === '杭州' ? '北京' : city, // 公交查询需要具体城市
         autoFitView: false
       });
 
@@ -730,14 +801,14 @@ export class RouteService {
         if (status === 'complete' && result.plans && result.plans.length > 0) {
           const plan = result.plans[0];
           resolve({
-            mode: 'transit',
+            mode: 'transfer',
             distance: plan.distance,
             duration: plan.time,
             success: true
           });
         } else {
           resolve({
-            mode: 'transit',
+            mode: 'transfer',
             distance: 0,
             duration: 0,
             success: false,
@@ -745,154 +816,6 @@ export class RouteService {
           });
         }
       });
-    });
-  }
-
-  // 查询所有支持的出行方式
-  async getAllRoutes(
-    startPoint: [number, number], 
-    endPoint: [number, number],
-    city: string = '全国'
-  ): Promise<RouteResult[]> {
-    const results = await Promise.all([
-      this.getDrivingRoute(startPoint, endPoint),
-      this.getWalkingRoute(startPoint, endPoint),
-      this.getBicyclingRoute(startPoint, endPoint),
-      this.getElecBikeRoute(startPoint, endPoint),
-      this.getTransitRoute(startPoint, endPoint, city)
-    ]);
-
-    return results;
-  }
-
-  // 添加公交换乘站点标记
-  private addTransitStations(plan: any): void {
-    if (!plan.segments) return;
-
-    plan.segments.forEach((segment: any, index: number) => {
-      if (segment.transit && segment.transit.lines && segment.transit.lines.length > 0) {
-        // 添加换乘站点标记
-        const line = segment.transit.lines[0];
-        if (line.departure_stop && line.departure_stop.location) {
-          const marker = new (window as any).AMap.Marker({
-            position: [line.departure_stop.location.lng, line.departure_stop.location.lat],
-            content: `<div style="background: #ff7875; color: white; padding: 2px 6px; border-radius: 12px; font-size: 10px;">换乘</div>`,
-            offset: new (window as any).AMap.Pixel(-12, -6)
-          });
-          this.map.add(marker);
-        }
-      }
-    });
-  }
-
-  drawRoute(
-    startPoint: [number, number], 
-    endPoint: [number, number], 
-    mode: string = 'driving'
-  ): Promise<boolean> {
-    return new Promise((resolve) => {
-      // 先清除之前的路线
-      this.clearRoutes();
-
-      switch (mode) {
-        case 'driving':
-          this.currentRouteInstance = new (window as any).AMap.Driving({
-            map: this.map,
-            showTraffic: true,
-            autoFitView: true,
-            strokeColor: '#1890ff',
-            strokeWeight: 6,
-            strokeOpacity: 0.8
-          });
-          
-          this.currentRouteInstance.search(startPoint, endPoint, (status: string, result: any) => {
-            resolve(status === 'complete');
-          });
-          break;
-
-        case 'walking':
-          if ((window as any).AMap.Walking) {
-            this.currentRouteInstance = new (window as any).AMap.Walking({
-              map: this.map,
-              autoFitView: true,
-              strokeColor: '#52c41a',
-              strokeWeight: 4,
-              strokeOpacity: 0.8
-            });
-            
-            this.currentRouteInstance.search(startPoint, endPoint, (status: string, result: any) => {
-              resolve(status === 'complete');
-            });
-          } else {
-            resolve(false);
-          }
-          break;
-
-        case 'bicycling':
-          if ((window as any).AMap.Bicycling) {
-            this.currentRouteInstance = new (window as any).AMap.Bicycling({
-              map: this.map,
-              autoFitView: true,
-              strokeColor: '#faad14',
-              strokeWeight: 4,
-              strokeOpacity: 0.8
-            });
-            
-            this.currentRouteInstance.search(startPoint, endPoint, (status: string, result: any) => {
-              resolve(status === 'complete');
-            });
-          } else {
-            resolve(false);
-          }
-          break;
-
-        case 'elecbike':
-          if ((window as any).AMap.ElectroBike) {
-            this.currentRouteInstance = new (window as any).AMap.ElectroBike({
-              map: this.map,
-              autoFitView: true,
-              strokeColor: '#722ed1',
-              strokeWeight: 4,
-              strokeOpacity: 0.8
-            });
-            
-            this.currentRouteInstance.search(startPoint, endPoint, (status: string, result: any) => {
-              resolve(status === 'complete');
-            });
-          } else {
-            resolve(false);
-          }
-          break;
-
-        case 'transit':
-          if ((window as any).AMap.Transfer) {
-            // 公交路线需要特殊处理，显示换乘站点
-            this.currentRouteInstance = new (window as any).AMap.Transfer({
-              map: this.map,
-              autoFitView: true,
-              city: '北京', // 根据实际城市设置
-              policy: (window as any).AMap.TransferPolicy.LEAST_TIME,
-              panel: null, // 不使用默认面板
-              hideMarkers: false // 显示站点标记
-            });
-            
-            this.currentRouteInstance.search(startPoint, endPoint, (status: string, result: any) => {
-              if (status === 'complete' && result.plans && result.plans.length > 0) {
-                // 可以在这里添加自定义的换乘站点标记
-                this.addTransitStations(result.plans[0]);
-                resolve(true);
-              } else {
-                resolve(false);
-              }
-            });
-          } else {
-            resolve(false);
-          }
-          break;
-
-        default:
-          resolve(false);
-      }
     });
   }
 }

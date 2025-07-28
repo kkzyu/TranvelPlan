@@ -15,7 +15,7 @@ export interface PlanItem {
   lng: number;
   isStart: boolean;
   isEnd: boolean;
-  mode: 'riding' | 'driving' | 'walking' | 'bicycling' | 'elecbike' | 'transit';
+  mode: 'riding' | 'driving' | 'walking' | 'riding' | 'transfer';
   time?: string;
   checked: boolean;
 }
@@ -55,7 +55,7 @@ const HomePage: React.FC = () => {
         return <MapView 
           planItems={planItems} 
           isSubmitted={isSubmitted}
-          city={planItems.length > 0 ? planItems[0].region : '全国'}
+          city={planItems.length > 0 ? planItems[0].region : '杭州'}
         />;
       default:
         return null;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Cascader } from 'antd';
-import {CityOptions} from '@/constants'
+import {CityOptions} from '@/constants/options'
 
 interface SelectOptionProps{
   value?: string,

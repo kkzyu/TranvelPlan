@@ -1,19 +1,3 @@
-  export const MODE_NAMES: Record<string, string> = {
-    driving: '驾车',
-    walking: '步行', 
-    bicycling: '骑行',
-    elecbike: '电动车',
-    transit: '公交'
-  };
-
-  export const MODE_COLORS: Record<string, string> = {
-    driving: '#1890ff',
-    walking: '#52c41a',
-    bicycling: '#faad14',
-    elecbike: '#722ed1',
-    transit: '#f759ab'
-  };
-
 export interface Option {
   value: string;
   label: string;
