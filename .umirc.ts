@@ -4,6 +4,7 @@ export default defineConfig({
   base: process.env.NODE_ENV === 'production' ? '/TravelPlan/' : '/',
   publicPath: process.env.NODE_ENV === 'production' ? '/TravelPlan/' : '/',
   outputPath: 'dist',
+  exportStatic: {},
   routes: [
     { path: "/", component: "index" },
   ],
