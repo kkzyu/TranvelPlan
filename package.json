@@ -1,6 +1,11 @@
 {
   "private": true,
   "author": "kkzyu <kkzyu@zju.edu.cn>",
+  "name": "travel-plan",
+  "version": "1.0.0",
+  "description": "Travel Plan Application",
+  "keywords": ["travel", "plan", "react", "umi"],
+  "license": "MIT",
   "scripts": {
     "dev": "umi dev",
     "build": "umi build",
