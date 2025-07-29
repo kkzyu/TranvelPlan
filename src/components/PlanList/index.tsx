@@ -1,4 +1,4 @@
-import { Checkbox, Modal, Flex, Button, Select, Table, TableColumnsType } from 'antd';
+import { Checkbox, Modal, Flex, Button, Select, Table, TableColumnsType, message } from 'antd';
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { useSensors, useSensor, PointerSensor, DndContext } from '@dnd-kit/core'
 import { PlanItem } from '@/pages/index';
@@ -7,6 +7,7 @@ import React, { useState } from 'react';
 import PlaceSearchInput from '../PlaceSearchInput';
 import SelectCity from './SelectCity';
 import { Place } from 'types';
+import { ImportOutlined, PlusOutlined } from '@ant-design/icons';
 
 interface RowProps extends React.HTMLAttributes<HTMLTableRowElement>{
   'data-row-key':string;
@@ -40,13 +41,15 @@ const PlanList = ({
   setItems,
   isSubmitted = false,
   onSubmit,
-  onEdit
+  onEdit,
+  onImportData
 }: { 
   items: PlanItem[], 
   setItems: React.Dispatch<React.SetStateAction<PlanItem[]>>,
   isSubmitted?: boolean,
   onSubmit?: () => void,
-  onEdit?: () => void
+  onEdit?: () => void,
+  onImportData?: (PlanItem: PlanItem[]) => void
 }) => {
   const [dataSource, setDataSource] = useState<PlanItem[]>(items);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -90,11 +93,51 @@ const PlanList = ({
     onEdit?.();
   };
 
-  const toggleCheck = (id: string) => {
-    setItems((prev)=>
-      prev.map((item) => 
-      item.id === id ? { ...item, checked: !item.checked } : item
-    ));
+  const handleImportFromFile = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target?.result as string);
+            
+            if (data.spots && Array.isArray(data.spots)) {
+              const importedItems: PlanItem[] = data.spots.map((spot: any, index: number) => ({
+                id: `imported-${Date.now()}-${index}`,
+                name: spot.name,
+                location: spot.location || spot.name,
+                region: spot.region || '未知',
+                lat: spot.coordinates?.latitude || spot.lat,
+                lng: spot.coordinates?.longitude || spot.lng,
+                isStart: index === 0,
+                isEnd: index === data.spots.length - 1,
+                mode: spot.transportMode || spot.mode || 'driving',
+                checked: false
+              }));
+
+              if (onImportData) {
+                onImportData(importedItems);
+              } else {
+                setItems((prev) => [...prev, ...importedItems]);
+              }
+              
+              message.success(`成功导入 ${importedItems.length} 个景点`);
+            } else {
+              message.error('文件格式不正确，请选择正确的JSON文件');
+            }
+          } catch (error) {
+            console.error('导入文件解析失败:', error);
+            message.error('文件格式不正确，请检查JSON格式');
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    input.click();
   };
 
   const setStartPoint = (id: string) => {
@@ -155,29 +198,55 @@ const PlanList = ({
   };
 
   const rowSelection = {
-    type: 'checkbox' as const,
-    selectedRowKey: items.filter(item=>item.checked).map(item => item.id),
-    onSelect:(record:PlanItem,selected:boolean)=>{
-      setItems((prev)=>
-        prev.map((item)=>
-          item.id === record.id ? {...item,checked:selected}:item
-        ))
-    },
-    onSelectAll:(selected:boolean,selectedRows:PlanItem[],changeRows:PlanItem[])=>{
-      setItems((prev)=>
-      prev.map((item)=>({
+  type: 'checkbox' as const,
+  selectedRowKeys: items.filter(item => item.checked).map(item => item.id),
+  onChange: (selectedRowKeys: React.Key[], selectedRows: PlanItem[]) => {
+    setItems((prev) =>
+      prev.map((item) => ({
         ...item,
-        checked:selected
-      }))  
-    )
-    },
-    getCheckboxProps:(record:PlanItem)=>({
-      disabled:isSubmitted,
-      name:record.name,
-    }),
-    columnTitle:isSubmitted?'选择状态':'选择',
-    columnWidth:60,
-  }
+        checked: selectedRowKeys.includes(item.id)
+      }))
+    );
+  },
+  onSelect: (record: PlanItem, selected: boolean, selectedRows: PlanItem[]) => {
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === record.id ? { ...item, checked: selected } : item
+      )
+    );
+  },
+  onSelectAll: (selected: boolean, selectedRows: PlanItem[], changeRows: PlanItem[]) => {
+    setItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        checked: selected
+      }))
+    );
+  },
+  getCheckboxProps: (record: PlanItem) => ({
+    disabled: isSubmitted,
+    name: record.name,
+  }),
+  columnTitle: isSubmitted ? '选择状态' : (
+    <Checkbox
+      indeterminate={items.some(item => item.checked) && !items.every(item => item.checked)}
+      checked={items.length > 0 && items.every(item => item.checked)}
+      disabled={isSubmitted || items.length === 0}
+      onChange={(e) => {
+        const checked = e.target.checked;
+        setItems((prev) =>
+          prev.map((item) => ({
+            ...item,
+            checked: checked
+          }))
+        );
+      }}
+    >
+    </Checkbox>
+  ),
+  columnWidth: 60,
+};
+
 
   const columns = [
     {
@@ -218,11 +287,11 @@ const PlanList = ({
     {
       title: '出行方式',
       dataIndex: 'mode',
-      width:150,
+      width:100,
       render:(value:string,record:PlanItem)=>(
         <Select
           value={value}
-          style={{width:100}}
+          style={{width:70}}
           disabled={isSubmitted}
           onChange={(newMode)=>{
             setItems((prev)=>
@@ -294,7 +363,7 @@ const PlanList = ({
             columns={columns}
             dataSource={dataSource}
             pagination={false}
-            scroll={{y:'calc(100vh - 200px)'}}
+            scroll={{y:'calc(100vh - 260px)'}}
             rowSelection={!isSubmitted?rowSelection:undefined}
             style={{
               background:'#fff',
@@ -323,13 +392,25 @@ const PlanList = ({
       </DndContext>
 
       <Flex justify='space-between' style={{padding:'16px 0', flexShrink: 0}}>
-        <Button 
-          type='primary'
-          onClick={handleAddNewItem}
-          disabled={isSubmitted}
-        >
-          新增景点
-        </Button>
+        <Flex gap="middle">
+          <Button 
+            type='primary'
+            icon={<PlusOutlined />}
+            onClick={handleAddNewItem}
+            disabled={isSubmitted}
+          >
+            新增景点
+          </Button>
+          
+          <Button 
+            icon={<ImportOutlined />}
+            onClick={handleImportFromFile}
+            disabled={isSubmitted}
+            title="从JSON文件批量导入景点"
+          >
+            导入景点
+          </Button>
+        </Flex>
 
         <Modal 
           title="新增景点"

@@ -1,4 +1,5 @@
 import { RouteResult, RouteSegment, CompleteRouteResult } from '@/services/types'
+import { calculateSingleSegment } from './singleRouteCalculation';
 import { ensurePluginsLoaded } from './'
 
 export class RouteCalculationService {
@@ -69,6 +70,7 @@ export class RouteCalculationService {
         return new Promise((resolve) => {
           const walking = new (window as any).AMap.Walking({
             map: null,
+            showTraffic: false,
             autoFitView: false
           });
     
@@ -114,6 +116,7 @@ export class RouteCalculationService {
           return new Promise((resolve) => {
             const riding = new (window as any).AMap.Riding({
               map: null,
+              showTraffic: false,
               autoFitView: false
             });
       
@@ -227,13 +230,15 @@ export class RouteCalculationService {
           const segmentMode = startItem.mode || 'driving';
           
           try {
-            const segmentResult = await this.calculateSingleSegment(
+            console.log(`计算路段 ${i + 1}:`, startItem.name, '→', endItem.name, `(${segmentMode})`);
+            const segmentResult = await calculateSingleSegment(
               startItem,
               endItem,
               segmentMode,
               `segment-${i}`
             );
-    
+
+            console.log(`路段 ${i + 1} 计算结果:`, segmentResult);
             segments.push(segmentResult);
             
             if (segmentResult.success) {
@@ -262,57 +267,14 @@ export class RouteCalculationService {
           }
         }
     
-        return {
+        const result = {
           segments,
           totalDistance,
           totalDuration,
           mode: 'mixed',
           success: segments.some(s => s.success)
         };
-      }
-
-    // 计算单个路段的长度和耗时
-    private async calculateSingleSegment(
-        startItem: any,
-        endItem: any,
-        mode: string,
-        segmentId: string
-      ): Promise<RouteSegment> {
-        let routeResult: RouteResult;
-    
-        switch (mode) {
-          case 'driving':
-            routeResult = await this.getDrivingRoute([startItem.lng, startItem.lat], [endItem.lng, endItem.lat]);
-            break;
-          case 'walking':
-            routeResult = await this.getWalkingRoute([startItem.lng, startItem.lat], [endItem.lng, endItem.lat]);
-            break;
-          case 'riding':
-            routeResult = await this.getRidingRoute([startItem.lng, startItem.lat], [endItem.lng, endItem.lat]);
-            break;
-          case 'transfer':
-            routeResult = await this.getTransitRoute([startItem.lng, startItem.lat], [endItem.lng, endItem.lat], '杭州');
-            break;
-          default:
-            routeResult = await this.getDrivingRoute([startItem.lng, startItem.lat], [endItem.lng, endItem.lat]);
-        }
-    
-        return {
-          id: segmentId,
-          startPoint: {
-            name: startItem.name,
-            position: [startItem.lng, startItem.lat]
-          },
-          endPoint: {
-            name: endItem.name,
-            position: [endItem.lng, endItem.lat]
-          },
-          distance: routeResult.distance,
-          duration: routeResult.duration,
-          mode: mode as any,
-          polyline: [], 
-          success: routeResult.success,
-          error: routeResult.error
-        };
+        console.log('完整路线计算结果:', result);
+        return result;
       }
 }

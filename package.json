@@ -18,7 +18,11 @@
     "antd": "^5.26.6",
     "axios": "^1.11.0",
     "dnd-kit": "^0.0.2",
+    "html2canvas": "^1.4.1",
+    "html2pdf.js": "^0.10.3",
+    "jspdf": "^3.0.1",
     "react-beautiful-dnd": "^13.1.1",
+    "react-quill": "^2.0.0",
     "umi": "^4.4.11",
     "xlsx": "^0.18.5"
   },

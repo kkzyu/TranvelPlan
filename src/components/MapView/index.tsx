@@ -1,20 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, Spin, message } from 'antd';
 import { PlanItem } from '@/pages/index';
-import {  RouteService, RouteResult, CompleteRouteResult, RouteSegment } from '@/services/maps';
-import { loadAMapScript } from '@/services/types/center'
+import {  RouteService } from '@/services/maps';
+import { RouteResult, CompleteRouteResult, loadAMapScript } from '@/services/types';
 import { CITY_CENTERS } from '@/constants/options'
 import { MODE_NAMES, MODE_COLORS } from '@/constants/mapConfig'
-
+import ExportItinerary from '@/components/ExportButton';
 
 const MapView = ({ 
   planItems, 
   isSubmitted = false,
-  city = '杭州'
+  city = '杭州',
+  onImportData
 }: { 
   planItems: PlanItem[], 
   isSubmitted?: boolean,
-  city?: string
+  city?: string,
+  onImportData?: (PlanItems: PlanItem[]) => void
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -196,7 +198,19 @@ const MapView = ({
           
           setCompleteRoute(completeRouteResult);
           
-          if (completeRouteResult.success) {
+          if (completeRouteResult.success && completeRouteResult.segments.length > 0) {
+            const modes = completeRouteResult.segments
+              .filter(s => s.success)
+              .map(s => s.mode)
+            
+            if (modes.length > 0) {
+              const uniqueModes = [...new Set(modes)];
+              if (uniqueModes.length === 1) {
+                setSelectedMode(uniqueModes[0]);
+              } else {
+                setSelectedMode('mixed');
+              }
+            }
             routeServiceRef.current.drawCompleteRoute(completeRouteResult);
           }
         } catch (error) {
@@ -243,6 +257,12 @@ const MapView = ({
     handleRouteCalculation();
   }, [planItems, mapLoading, city, isSubmitted]);
 
+  const handleImportData = (importedItems: PlanItem[]) => {
+    if (onImportData) {
+      onImportData(importedItems);
+    }
+  };
+  
   const handleModeChange = async (mode: string) => {
     if (!routeServiceRef.current || routeDrawing || isSubmitted) return;
     
@@ -253,7 +273,6 @@ const MapView = ({
 
     const routeInfo = routes.find(r => r.mode === mode);
     if (!routeInfo || !routeInfo.success) {
-      message.warning(`${MODE_NAMES[mode]}路线规划暂不可用`);
       return;
     }
 
@@ -269,10 +288,6 @@ const MapView = ({
 
       if (!success) {
         message.error(`${MODE_NAMES[mode]}路线绘制失败`);
-      } else {
-        if (mode === 'transfer') {
-          message.success('公交路线已显示，红色标记为换乘站点');
-        }
       }
     } catch (error) {
       console.error('路线绘制失败:', error);
@@ -283,8 +298,11 @@ const MapView = ({
   };
 
   const handleSegmentClick = (segmentId: string) => {
-    if (!routeServiceRef.current) return;
-
+    console.log('点击路段:', segmentId, '当前选中:', selectedSegment);
+    if (!routeServiceRef.current) {
+        console.error('routeService未初始化');
+        return;
+    }
     if (selectedSegment === segmentId) {
       setSelectedSegment(null);
       routeServiceRef.current.resetSegmentHighlight();
@@ -295,34 +313,44 @@ const MapView = ({
   };
 
   return (
-    <div style={{ height: '80vh', width: '100%', border: '1px solid #e8e8e8', borderRadius: 8 }}>
+    <div style={{ height: '80vh', width: '100%', border: '1px solid #e8e8e8', borderRadius: 8, overflow: 'auto' }}>
       <div style={{ padding: '16px', background: '#f5f5f5', borderBottom: '1px solid #e8e8e8' }}>
-        {mapLoading ? '地图加载中...' : 
-          loading ? (isSubmitted ? '计算完整路径中...' : '查询路线中...') : 
-            routeDrawing ? `正在绘制${MODE_NAMES[selectedMode]}路线...` :
-            isSubmitted ? 
-              (completeRoute && completeRoute.success ? 
-                `完整行程路线 (${completeRoute.segments.filter(s => s.success).length}/${completeRoute.segments.length} 段成功)` : 
-                '完整路径计算') : 
-              (routes.length > 0 ? 
-                `多种出行方式对比 (${routes.filter(r => r.success).length}/${routes.length} 种可用)` : 
-                '路线预览')
-        }
-        {(isSubmitted ? completeRoute : routes.length > 0) && !loading && (
-          <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-            当前显示: <span style={{ color: MODE_COLORS[selectedMode], fontWeight: 'bold' }}>
-              {MODE_NAMES[selectedMode]}
-            </span> 路线
-            {isSubmitted && completeRoute && (
-              <span style={{ marginLeft: '16px' }}>
-                总距离: {(completeRoute.totalDistance/1000).toFixed(1)}km | 
-                总时间: {Math.ceil(completeRoute.totalDuration/60)}分钟
-              </span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            {mapLoading ? '地图加载中...' : 
+              loading ? (isSubmitted ? '计算完整路径中...' : '查询路线中...') : 
+                routeDrawing ? `正在绘制${MODE_NAMES[selectedMode]}路线...` :
+                isSubmitted ? 
+                  (completeRoute && completeRoute.success ? 
+                    `完整行程路线 (${completeRoute.segments.filter(s => s.success).length}/${completeRoute.segments.length} 段成功)` : 
+                    '完整路径计算') : 
+                  (routes.length > 0 ? 
+                    `多种出行方式对比 (${routes.filter(r => r.success).length}/${routes.length} 种可用)` : 
+                    '路线预览')
+            }
+            {(isSubmitted ? completeRoute : routes.length > 0) && !loading && (
+              <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                当前显示: <span style={{ color: MODE_COLORS[selectedMode], fontWeight: 'bold' }}>
+                  {MODE_NAMES[selectedMode] || selectedMode}
+                </span> 路线
+                {isSubmitted && completeRoute && (
+                  <span style={{ marginLeft: '16px' }}>
+                    总距离: {(completeRoute.totalDistance/1000).toFixed(1)}km | 
+                    总时间: {Math.ceil(completeRoute.totalDuration/60)}分钟
+                  </span>
+                )}
+              </div>
             )}
           </div>
-        )}
+          
+          <ExportItinerary 
+            planItems={planItems}
+            completeRoute={completeRoute}
+            isSubmitted={isSubmitted}
+            onImportData={handleImportData}
+          />
+        </div>
       </div>
-      
       
       <div 
             ref={mapContainerRef} 
@@ -332,9 +360,7 @@ const MapView = ({
               background: '#f0f2f5'
             }} 
         />
-      
-      
-      
+
       <div style={{ padding: '16px', maxHeight: '100vh', overflow: 'hidden' }}>
         {loading && (
           <div style={{ textAlign: 'center', padding: '20px' }}>
@@ -478,17 +504,11 @@ const MapView = ({
                   )}
                 </div>
                 <div style={{ fontSize: '12px', color: route.success ? '#666' : '#999', marginTop: '4px' }}>
-                  {route.success ? (
                     <>
                       距离: {(route.distance/1000).toFixed(1)}km | 
                       时间: {Math.ceil(route.duration/60)}分钟
                       {route.mode === 'transfer' && ' | 含换乘'}
                     </>
-                  ) : (
-                    <span style={{ color: '#ff4d4f' }}>
-                      {route.mode === 'elecbike' ? '该城市暂不支持电动车路径规划' : route.error}
-                    </span>
-                  )}
                 </div>
               </div>
             ))}

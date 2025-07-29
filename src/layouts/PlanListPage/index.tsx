@@ -8,6 +8,7 @@ interface PlanListPageProps {
   planItems: PlanItem[];
   setPlanItems: React.Dispatch<React.SetStateAction<PlanItem[]>>;
   isSubmitted: boolean;
+  onImportData: (items: PlanItem[]) => void;
   onSubmit: () => void;
   onEdit: () => void;
 }
@@ -16,6 +17,7 @@ const PlanListPage: React.FC<PlanListPageProps> = ({
   planItems,
   setPlanItems,
   isSubmitted,
+  onImportData,
   onSubmit,
   onEdit
 }) => {
@@ -35,6 +37,7 @@ const PlanListPage: React.FC<PlanListPageProps> = ({
           planItems={planItems}
           isSubmitted={isSubmitted}
           city={planItems.length > 0 ? planItems[0].region : '杭州'}
+          onImportData={onImportData}
         />
       </Col>
     </Row>

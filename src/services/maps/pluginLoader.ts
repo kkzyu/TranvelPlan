@@ -26,10 +26,19 @@ export class PluginLoader {
 
             // 显示成功加载的出行方式
             (window as any).AMap.plugin(basicPlugins, () => {
+                const pluginMapping: Record<string,string> = {
+                    'AMap.Driving': 'driving',
+                    'AMap.Walking': 'walking',
+                    'AMap.Transfer': 'transfer',
+                    'AMap.Riding': 'riding'
+                };
                 basicPlugins.forEach(plugin => {
-                    const pluginName = plugin.replace('AMap.', '');
-                    if ((window as any).AMap[pluginName]) {
-                        this.availablePlugins.add(pluginName.toLowerCase());
+                    const pluginClass = plugin.replace('AMap.', '');
+                    if ((window as any).AMap[pluginClass]) {
+                        const mappedName = pluginMapping[plugin];
+                        if(mappedName) {
+                            this.availablePlugins.add(mappedName);
+                        }
                     }
                 });   
                 this.pluginsLoaded = true;
