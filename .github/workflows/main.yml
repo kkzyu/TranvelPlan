@@ -42,6 +42,6 @@ jobs:
     - name: Display deployment URL
       if: github.ref == 'refs/heads/master'
       run: |
-        echo "🚀 部署成功!"
+        echo "🚀 部署成功啦!"
         echo "📱 网站地址: https://${{ github.repository_owner }}.github.io/TravelPlan/"
         echo "🔗 仓库地址: https://github.com/${{ github.repository }}"
