@@ -26,12 +26,10 @@ jobs:
         
     - name: Install dependencies
       run: |
-        cd travel-planner
         pnpm install
         
     - name: Build
       run: |
-        cd travel-planner
         pnpm run build
       
     - name: Deploy to GitHub Pages
