@@ -31,6 +31,10 @@ jobs:
     - name: Build
       run: |
         pnpm run build
+      env:
+        UMI_APP_AMAP_WEB_SERVICE_KEY: ${{ secrets.UMI_APP_AMAP_WEB_SERVICE_KEY }}
+        UMI_APP_AMAP_JS_KEY: ${{ secrets.UMI_APP_AMAP_JS_KEY }}
+        UMI_APP_AMAP_SECRET_KEY: ${{ secrets.UMI_APP_AMAP_SECRET_KEY }}
 
     - name: Check dist files
       run: ls -la dist
@@ -44,7 +48,7 @@ jobs:
 
     - name: Check index.html content
       run: cat dist/index.html
-      
+
     - name: Display deployment URL
       if: github.ref == 'refs/heads/master'
       run: |
