@@ -4,7 +4,7 @@ import { useSensors, useSensor, PointerSensor, DndContext } from '@dnd-kit/core'
 import { PlanItem } from '@/pages/index';
 import { CSS } from '@dnd-kit/utilities'
 import React, { useState } from 'react';
-import PlaceSearchInput from '../PlaceSearchInput';
+import PlaceSearchInput from './PlaceSearchInput';
 import SelectCity from './SelectCity';
 import { Place } from 'types';
 import { ImportOutlined, PlusOutlined } from '@ant-design/icons';
@@ -395,25 +395,16 @@ const PlanList = ({
         <Flex gap="middle">
           <Button 
             type='primary'
-            icon={<PlusOutlined />}
             onClick={handleAddNewItem}
             disabled={isSubmitted}
           >
-            新增景点
+            新增
           </Button>
           
-          <Button 
-            icon={<ImportOutlined />}
-            onClick={handleImportFromFile}
-            disabled={isSubmitted}
-            title="从JSON文件批量导入景点"
-          >
-            导入景点
-          </Button>
         </Flex>
 
         <Modal 
-          title="新增景点"
+          title="新增"
           open={isModalOpen}
           onOk={handleOk}
           onCancel={handleCancel}
@@ -457,12 +448,11 @@ const PlanList = ({
           </div>
         </Modal>
 
-        <Flex gap='middle'>
+        <Flex gap='middle' style={{marginRight:20}}>
           {isSubmitted ? (
             <Button onClick={handleEdit}>返回编辑</Button>
           ) : (
             <>
-              <Button type='default'>编辑</Button>
               <Button type='primary' onClick={handleSubmit}>
                 提交行程
               </Button>
