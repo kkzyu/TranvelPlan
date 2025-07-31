@@ -1,0 +1,1 @@
+export { searchPlacesByKeyword } from '../search/placeSearch';

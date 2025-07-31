@@ -2,7 +2,7 @@ import { ImportOutlined, FileTextOutlined, FileExcelOutlined, DownloadOutlined }
 import { message, Dropdown, Button } from "antd";
 import { useExportToTxt, useExportToJson, useExportToCsv } from "./hooks";
 import { useImportFromFile } from "./hooks/useImportFromFile";
-import { generateItineraryText } from "./utils/itinerarytext";
+import { generateItineraryText } from "../../services/utils/itineraryText";
 import { PlanItem } from "@/pages";
 import { CompleteRouteResult } from "@/services/types";
 interface ExportItineraryProps {

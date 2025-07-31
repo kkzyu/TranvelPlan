@@ -4,7 +4,7 @@ import PlanListPage from '@/layouts/PlanListPage';
 import styles from './index.less'
 
 import HeaderBar from '@/components/HeaderBar';
-import { clearLocalStorage, loadFromLocalStorage, saveToLocalStorage } from '@/services/utiles';
+import { clearLocalStorage, loadFromLocalStorage, saveToLocalStorage } from '@/services/utils';
 import { sharedLinkImport } from './hooks/useSharedLinkImport';
 import TravelMap from '@/layouts/TravelMap';
 

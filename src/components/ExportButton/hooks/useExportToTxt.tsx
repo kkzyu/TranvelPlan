@@ -1,7 +1,7 @@
 import { message } from "antd";
 import { CompleteRouteResult } from "@/services/types";
 import { PlanItem } from "@/pages";
-import { generateItineraryText } from "../utils/itinerarytext";
+import { generateItineraryText } from "../../../services/utils/itineraryText";
 
 export const useExportToTxt = (
   planItems: PlanItem[],
