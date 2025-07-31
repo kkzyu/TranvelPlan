@@ -146,7 +146,7 @@ export class RouteCalculationService {
     async getTransitRoute(
         startPoint: [number, number], 
         endPoint: [number, number],
-        city: string = '杭州'
+        city: string = ''
       ): Promise<RouteResult> {
         try {
           await ensurePluginsLoaded();
@@ -193,7 +193,7 @@ export class RouteCalculationService {
     async getAllRoutes(
         startPoint: [number, number], 
         endPoint: [number, number],
-        city: string = '杭州'
+        city: string = ''
       ): Promise<RouteResult[]> {
         const results = await Promise.all([
           this.getDrivingRoute(startPoint, endPoint),

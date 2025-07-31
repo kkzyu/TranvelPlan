@@ -1,7 +1,7 @@
-import { Flex, Button, Modal, Cascader } from "antd";
+import { Flex, Button, Modal, Cascader, Typography } from "antd";
 import PlaceSearchInput from "../PlaceSearchInput";
-import cascaderOptions from '@pansy/china-division';
-
+import styles from "../index.less";
+import { CityOptions } from "@/constants/options";
 interface PlanListFooterProps {
   handleAddNewItem: () => void;
   isSubmitted: boolean;
@@ -53,18 +53,19 @@ const PlanListFooter: React.FC<PlanListFooterProps> = ({
         <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 8, fontWeight: "bold" }}>城市范围</div>
           <Cascader
-            options={cascaderOptions} 
+            options={CityOptions}
             placeholder="请选择城市（可选）"
-            onChange={(value, selectedOptions) => {
+            onChange={(value, selectedselectedPlaces) => {
               const cityName =
-                selectedOptions?.[selectedOptions.length - 1]?.label || "杭州";
+                selectedselectedPlaces?.[selectedselectedPlaces.length - 1]
+                  ?.label || "杭州";
               setCity(cityName);
             }}
             changeOnSelect={false}
             expandTrigger="hover"
             size="middle"
             style={{ width: "100%" }}
-            showSearch 
+            showSearch
           />
         </div>
 
@@ -72,24 +73,41 @@ const PlanListFooter: React.FC<PlanListFooterProps> = ({
           <div style={{ marginBottom: 8, fontWeight: "bold" }}>选择景点</div>
           <PlaceSearchInput
             onPlaceSelected={setSelectedPlace}
-            placeholder="输入景点名称搜索"
+            placeholder="输入景点名称或需求搜索（如“附近有KTV和优衣库的商场”）"
             city={city === "杭州" ? "" : city}
             key={city}
           />
           {selectedPlace && (
-            <div
-              style={{
-                marginTop: 8,
-                padding: 8,
-                background: "#f6ffed",
-                border: "1px solid #b7eb8f",
-                borderRadius: 4,
-              }}
-            >
-              <div style={{ fontWeight: "bold" }}>{selectedPlace.name}</div>
-              <div style={{ fontSize: "12px", color: "#666" }}>
-                {selectedPlace.address}
-              </div>
+            <div className={styles.selectedPlace}>
+              {/* 景点名称 */}
+              <Typography.Text strong>{selectedPlace.name}</Typography.Text>
+              {/* 景点地址 */}
+              <div className={styles.placeAddress}>{selectedPlace.address}</div>
+              {/* 展示热门景点的简介 */}
+              {selectedPlace?.place?.description && (
+                <div
+                  style={{
+                    fontSize: "12px",
+                    color: "#666",
+                    fontStyle: "normal",
+                  }}
+                >
+                  {selectedPlace.description.length > 50
+                    ? `${selectedPlace.description.slice(0, 50)}...`
+                    : selectedPlace.description}
+                </div>
+              )}
+
+              {/* 混合搜索时，展示商场包含的品牌 */}
+              {(() => {
+                const matchedBrands = selectedPlace?.matchedBrands;
+                if (!Array.isArray(matchedBrands)) return null;
+                return (
+                  <div style={{ fontSize: "12px", color: "#1890ff" }}>
+                    🔔 包含：{matchedBrands.join("、")}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>

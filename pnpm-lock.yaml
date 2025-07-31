@@ -41,6 +41,9 @@ importers:
       china-division:
         specifier: ^2.7.0
         version: 2.7.0
+      csv-parser:
+        specifier: ^3.2.0
+        version: 3.2.0
       dnd-kit:
         specifier: ^0.0.2
         version: 0.0.2
@@ -2339,6 +2342,11 @@ packages:
 
   csstype@3.1.3:
     resolution: {integrity: sha512-M1uQkMl8rQK/szD0LNhtqxIPLpimGm8sOBwU7lLnCpSbTyY3yeU1Vc7l4KT5zT4s/yOxHH5O7tIuuLOCnLADRw==, tarball: https://registry.npmjs.org/csstype/-/csstype-3.1.3.tgz}
+
+  csv-parser@3.2.0:
+    resolution: {integrity: sha512-fgKbp+AJbn1h2dcAHKIdKNSSjfp43BZZykXsCjzALjKy80VXQNHPFJ6T9Afwdzoj24aMkq8GwDS7KGcDPpejrA==, tarball: https://registry.npmjs.org/csv-parser/-/csv-parser-3.2.0.tgz}
+    engines: {node: '>= 10'}
+    hasBin: true
 
   current-script-polyfill@1.0.0:
     resolution: {integrity: sha512-qv8s+G47V6Hq+g2kRE5th+ASzzrL7b6l+tap1DHKK25ZQJv3yIFhH96XaQ7NGL+zRW3t/RDbweJf/dJDe5Z5KA==, tarball: https://registry.npmjs.org/current-script-polyfill/-/current-script-polyfill-1.0.0.tgz}
@@ -8423,6 +8431,8 @@ snapshots:
       css-tree: 1.1.3
 
   csstype@3.1.3: {}
+
+  csv-parser@3.2.0: {}
 
   current-script-polyfill@1.0.0: {}
 

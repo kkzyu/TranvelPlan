@@ -93,7 +93,7 @@ const PlanList: React.FC<PlanListProps> = ({
   const handleAddNewItem = useCallback(() => {
     setSelectedPlace(null);
     setIsModalOpen(true);
-    setCity("杭州");
+    setCity("");
   }, []);
 
   const handleOk = () => {

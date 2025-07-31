@@ -18,7 +18,7 @@ const TravelMap: React.FC<TravelMapProps> = ({
     onActiveKeysChange,
     onImportData,
 }) => {
-    const city = planItems.length > 0 ? planItems[0].region : '杭州';
+    const city = planItems.length > 0 ? planItems[0].region : '';
 
     const collapseItems: CollapseProps['items'] = [
           {

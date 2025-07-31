@@ -30,6 +30,7 @@
     "area-data": "^5.0.6",
     "axios": "^1.11.0",
     "china-division": "^2.7.0",
+    "csv-parser": "^3.2.0",
     "dnd-kit": "^0.0.2",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.10.3",
