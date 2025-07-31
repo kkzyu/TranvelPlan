@@ -8,17 +8,15 @@ export const loadAMapScript = (): Promise<void> => {
       return;
     }
 
-    // 设置安全密钥
     (window as any)._AMapSecurityConfig = {
-      securityJsCode: AMAP_SECRET_KEY, // 您的安全密钥
+      securityJsCode: AMAP_SECRET_KEY, 
     };
 
     const script = document.createElement('script');
     script.type = 'text/javascript';
     script.async = true;
     script.defer = true;
-    
-    // 使用JS API Key加载地图脚本
+
     script.src = `https://webapi.amap.com/maps?v=2.0&key=${AMAP_JS_KEY}`;
     
     script.onload = () => {

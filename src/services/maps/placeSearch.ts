@@ -1,7 +1,9 @@
+// 根据关键词搜索
 import axios from 'axios';
 import { Place } from '@/services/types'
 const AMAP_WEB_SERVICE_KEY = process.env.UMI_APP_AMAP_WEB_SERVICE_KEY;
 
+// TODO： 大模型解析type&keywords，关键词搜索+周边搜索，multipule支持&逻辑
 export const searchPlacesByKeyword = async (keyword: string, city: string): Promise<Place[]> => {
     try {
         const response = await axios.get('https://restapi.amap.com/v5/place/text', {
